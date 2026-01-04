@@ -1,0 +1,34 @@
+#!/bin/zsh
+local amount=10
+local commit_args=()
+for arg in "$@"
+do
+  if [[ "$arg" == -* ]]; then
+    commit_args+=("$arg")
+  else
+    amount="$arg"
+  fi
+done
+
+array=(${(@f)"$(git --no-pager log -n $amount --pretty=format:%s)"})
+for (( i = 1; i <= $#array; i++ )) do
+  key="$i"
+  if [[ $#i == 1 ]]; then
+    key=" $key"
+  fi
+  echo "$key $array[i]"
+done
+
+local choice
+echo ""
+read "choice?Commit to fixup?: "
+if [[ "$choice" -le "0" ]]; then
+  echo "No commit given.. Exiting."
+else
+  local commits_back=$(($choice - 1))
+  if [[ ! -z "$commit_args" ]]; then
+    git commit "$commit_args" --fixup HEAD~$commits_back
+  else
+    git commit --fixup HEAD~$commits_back
+  fi
+fi

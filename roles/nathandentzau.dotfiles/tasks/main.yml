@@ -1,0 +1,73 @@
+---
+- name: Ensure .ssh directory exists for user.
+  ansible.builtin.file:
+    path: "{{ dotfiles_user_home }}/.ssh"
+    state: directory
+    mode: '0700'
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+  when: dotfiles_install_ssh_keys | bool
+
+- name: Install SSH private key.
+  ansible.builtin.copy:
+    src: "{{ dotfiles_ssh_private_key_path }}"
+    dest: "{{ dotfiles_user_home }}/.ssh/id_rsa"
+    mode: '0600'
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+  when: dotfiles_install_ssh_keys | bool
+
+- name: Install SSH public key.
+  ansible.builtin.copy:
+    src: "{{ dotfiles_ssh_public_key_path }}"
+    dest: "{{ dotfiles_user_home }}/.ssh/id_rsa.pub"
+    mode: '0644'
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+  when: dotfiles_install_ssh_keys | bool
+
+- name: Install NVM.
+  ansible.builtin.shell: |
+    su -l {{ dotfiles_user }} -c 'curl -o- {{ dotfiles_nvm_install_url }} | bash'
+  args:
+    creates: "{{ dotfiles_user_home }}/.nvm"
+  when: dotfiles_install_nvm | bool
+
+- name: Install Oh My Zsh.
+  ansible.builtin.shell: |
+    su -l {{ dotfiles_user }} -c 'RUNZSH=no CHSH=no sh -c "$(curl -fsSL {{ dotfiles_ohmyzsh_install_url }})" --unattended'
+  args:
+    creates: "{{ dotfiles_user_home }}/.oh-my-zsh"
+  when: dotfiles_install_ohmyzsh | bool
+
+- name: Install dotfiles.
+  ansible.builtin.copy:
+    src: "{{ dotfiles_source_dir }}/{{ item }}"
+    dest: "{{ dotfiles_user_home }}/{{ item }}"
+    mode: '0644'
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+  loop: "{{ dotfiles_to_install }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Ensure bin directory exists for user scripts.
+  ansible.builtin.file:
+    path: "{{ dotfiles_user_home }}/bin"
+    state: directory
+    mode: '0755'
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+  when: dotfiles_scripts_to_install | length > 0
+
+- name: Install dotfile scripts.
+  ansible.builtin.copy:
+    src: "{{ dotfiles_source_dir }}/{{ item }}"
+    dest: "{{ dotfiles_user_home }}/bin/{{ item }}"
+    mode: '0755'
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+  loop: "{{ dotfiles_scripts_to_install }}"
+  loop_control:
+    label: "{{ item }}"
+

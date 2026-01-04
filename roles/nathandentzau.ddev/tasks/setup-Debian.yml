@@ -1,0 +1,50 @@
+---
+- name: Ensure dependencies are installed.
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+      - gnupg
+    state: present
+    update_cache: true
+
+- name: Ensure apt keyrings directory exists.
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Download and add DDEV GPG key.
+  ansible.builtin.get_url:
+    url: "{{ ddev_apt_gpg_key_url }}"
+    dest: "{{ ddev_apt_keyring_path }}.tmp"
+    mode: '0644'
+
+- name: Convert GPG key to binary format.
+  ansible.builtin.shell: |
+    gpg --dearmor < "{{ ddev_apt_keyring_path }}.tmp" > "{{ ddev_apt_keyring_path }}"
+  args:
+    creates: "{{ ddev_apt_keyring_path }}"
+
+- name: Set correct permissions on GPG key.
+  ansible.builtin.file:
+    path: "{{ ddev_apt_keyring_path }}"
+    mode: '0644'
+
+- name: Remove temporary GPG key file.
+  ansible.builtin.file:
+    path: "{{ ddev_apt_keyring_path }}.tmp"
+    state: absent
+
+- name: Add DDEV repository.
+  ansible.builtin.lineinfile:
+    path: "{{ ddev_apt_sources_list_path }}"
+    line: "deb [signed-by={{ ddev_apt_keyring_path }}] {{ ddev_apt_repo_url }} * *"
+    state: present
+    create: true
+    mode: '0644'
+  notify: apt update
+
+- name: Ensure handlers are notified immediately to update the apt cache.
+  ansible.builtin.meta: flush_handlers
+

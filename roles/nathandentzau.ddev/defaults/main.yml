@@ -1,0 +1,11 @@
+---
+# DDEV repository configuration
+ddev_apt_repo_url: "https://pkg.ddev.com/apt"
+ddev_apt_gpg_key_url: "https://pkg.ddev.com/apt/gpg.key"
+ddev_apt_keyring_path: "/etc/apt/keyrings/ddev.gpg"
+ddev_apt_sources_list_path: "/etc/apt/sources.list.d/ddev.list"
+
+# DDEV package configuration
+ddev_package_state: present
+ddev_install_mkcert: true
+

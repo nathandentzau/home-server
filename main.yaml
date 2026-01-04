@@ -1,0 +1,76 @@
+---
+- name: Provision the server.
+  hosts: all
+  become: true
+
+  vars:
+    # Ansible.
+    ansible_user: support
+
+  pre_tasks:
+    - name: Install packages with apt.
+      ansible.builtin.apt:
+        name:
+          - git
+          - vim
+          - zsh
+        state: latest
+        update_cache: true
+      tags:
+        - packages
+        - nathan
+
+    - name: Ensure the nathan group exists.
+      ansible.builtin.group:
+        name: nathan
+        state: present
+      tags: nathan
+
+    - name: Ensure the nathan user exists.
+      ansible.builtin.user:
+        name: nathan
+        group: nathan
+        shell: /usr/bin/zsh
+        state: present
+      tags: nathan
+
+    - name: Ensure the authorized key is added to the nathan user.
+      ansible.posix.authorized_key:
+        user: nathan
+        state: present
+        key: "{{ lookup('file', playbook_dir + '/ssh/id_rsa.pub') }}"
+      tags: nathan
+
+  roles:
+    - role: geerlingguy.security
+      vars:
+        security_sudoers_passwordless: [ support, nathan ]
+    - role: robertdebock.tailscale
+      vars:
+        tailscale_authkey: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          37356264303331623835386632383465666461326138353163613765323363303830623761316164
+          6661353432663132616230303963343930613062643035370a626163326435613431623963323361
+          37323261333362393131643065373661343133316661623966356531336134666439666561633837
+          3465313764623433610a626434623564666233626537366338643162313862633461333634343430
+          663536366238613937333530393835613935626143762653561864653938323334303730623238
+          62356536656337313135323730616362313035376366313437616266333865653437363162366163
+          373930333830343033623534303437316563
+        tailscale_hostname: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          35323932633134396630626237333637346231366636326335613164636665313266323636653563
+          3433363361343337306530343534336336336161343234380a626239306136396330326361633933
+          62333735666137643762336537616461303738653931336232323834343433613863353531363762
+          3261346430343631350a306331633530636464333137616566663337313265353734373861373330
+          63373830383264613265303731383566613561636364313032376237613432303866
+        tailscale_exit_node: true
+    - role: geerlingguy.docker
+      vars:
+        docker_users: [ support, nathan ]
+    - role: nathandentzau.ddev
+      vars:
+        ddev_package_state: latest
+    - role: nathandentzau.dotfiles
+      tags: nathan, dotfiles
+      vars:
+        dotfiles_user: nathan

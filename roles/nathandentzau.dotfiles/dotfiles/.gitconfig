@@ -1,0 +1,20 @@
+[user]
+  name = Nathan Dentzau
+  email = nathan.dentzau@gmail.com
+
+[core]
+  editor = vim
+  excludesfile = ~/.gitignore
+
+[color]
+  ui = always
+  diff = always
+
+[commit]
+  verbose = true
+
+[web]
+  browser = none
+
+[rebase]
+  autosquash = true
